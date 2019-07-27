@@ -460,7 +460,7 @@ class SearchingFilter(Filter):
     ):
         super().__init__(**kwargs)
         if isinstance(fields, list):
-            self.searching = [
+            self.fields = [
                 (k, "contains") for k in fields
             ]
         else:
