@@ -29,8 +29,8 @@ class Filter(filters.FilterSet):
     has_description = filters.MethodFilter("filter_description")
     price_min = filters.Filter(operator="ge")
     
-    def filter_description(self, queryset, value: bool, **kwargs):    
-        return queryset.where(
+    def filter_description(self, query, value: bool, **kwargs):    
+        return query.where(
             Product.description.is_null(not value) | (
                 (Product.description != "") if value else (Product.description == "")
             )
@@ -51,8 +51,8 @@ class Filter(filters.FilterSet):
     has_description = filters.MethodFilter("filter_description")
     price_min = filters.NumberFilter(operator="ge")
     
-    def filter_description(self, queryset, value: bool, **kwargs):    
-        return queryset.where(
+    def filter_description(self, query, value: bool, **kwargs):    
+        return query.where(
             Product.description.is_null(not value) | (
                 (Product.description != "") if value else (Product.description == "")
             )
@@ -84,31 +84,32 @@ This filter matches a boolean, either `True` or `False`, used with `BooleanField
 
 The following are the arguments that apply to all filters:
 
-##### field_name
+###### field_name
 The name of the model field that is filtered against. 
 If this argument is not provided, it defaults the filter’s attribute name on the `FilterSet` class.
 Field names can traverse relationships by joining the related parts with separator (.). e.g., a product’s manufacturer.name.
 
-##### description 
+###### description 
 Filter description. Defaults to empty string.
 
-##### operator
+###### operator
 The field lookup that should be performed in the filter call.
 Should be one of the following values: `eq`, `lt`, `gt`, `le`, `ge`, `ne`, `like`, `ilike`, `is_null`, `in`, `not_in`, `contains`, `startswith`, `endswith`, `regexp`, `iregexp`. 
 Defaults to `eq`.
 
-##### method
+###### method
 For `MethodFilter` only.
 An argument that tells the filter how to handle the queryset.
 It can accept either a callable or the name of a method on the `FilterSet`. 
-The callable receives a queryset, the name of the model field to filter on, the value to filter with, and context.
-It should return a filtered Queryset.
+The callable receives a `query`, the `field_name` of the model field to filter on, the `value` to filter with, and `context`.
+It should return a filtered query.
 
 # Special filters
 ### SearchingFilter
 Is used for searching in multiple fields. It accepts one additional argument:
 
-##### fields
+######
+ fields
 The list of fields for searching.
 
 ### OffsetFilter
@@ -119,26 +120,26 @@ Specify value for LIMIT clause.
 
 It accepts two additional arguments:
 
-##### default
+###### default
 Default value for LIMIT clause.
 Defaults to `1000`.
 
-##### maximum
+###### maximum
 Maximum value for LIMIT clause.
 Defaults to `None`.
 
 ### OrderingFilter
 Enable queryset ordering. It accepts two additional arguments that are used to build the ordering choices:
 
-##### fields
+###### fields
 Is a mapping of {parameter name: model field name}. `fields` may also just be a list of strings. In this case, the field names simply double as the exposed parameter names.
 
-##### default
+###### default
 Default ordering.
 
 ### SearchingFilter
 Enable queryset searching. It accepts one additional argument:
 
-##### fields
+###### fields
 Is a mapping of {model field name: operator}. `fields` may also just be a list of strings.
 In this case, the operator is `contains`. 
