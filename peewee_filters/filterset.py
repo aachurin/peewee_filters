@@ -1,6 +1,7 @@
 import typing
 import peewee
-from . filters import FilterBase, LimitFilter, OffsetFilter
+from typesystem import Object
+from . filters import Filter, LimitFilter, OffsetFilter
 
 
 class FilterSetOptions:
@@ -33,7 +34,7 @@ class FilterSetMeta(type):
         filters = [
             (name, attrs.pop(name))
             for name, f in list(attrs.items())
-            if isinstance(f, FilterBase)
+            if isinstance(f, Filter)
         ]
 
         # Default the `filter.field_name` to the attribute name
@@ -57,9 +58,16 @@ class FilterSetMeta(type):
 
 class FilterSet(metaclass=FilterSetMeta):
     _meta: FilterSetOptions = FilterSetOptions()
-    _declared_filters: typing.Dict[str, FilterBase]
+    _declared_filters: typing.Dict[str, Filter]
 
-    def __init__(self, validated_params):
+    def __init__(self, params=None, validated_params=None):
+        assert params is not None or validated_params is not None
+        if params is not None:
+            validator = Object(
+                properties=self.__schema__(),
+                additional_properties=None
+            )
+            validated_params = validator.validate(params)
         self.validated_params = validated_params
 
     @classmethod
@@ -78,14 +86,14 @@ class FilterSet(metaclass=FilterSetMeta):
         )
         return queryset
 
-    def apply(self, queryset=None):
+    def apply(self, queryset=None, context=None):
         queryset = self.get_queryset(queryset)
         if not isinstance(queryset, peewee.ModelSelect):
             queryset = queryset.select()
         params = self.validated_params
         for key, filter in self._declared_filters.items():
             if key in params:
-                queryset = filter.apply(self, queryset, params[key])
+                queryset = filter.apply(self, queryset, params[key], context)
         return queryset
 
 

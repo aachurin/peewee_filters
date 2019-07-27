@@ -1,6 +1,3 @@
-__version__ = '0.1.0'
-
-
 from . filterset import FilterSet, LimitOffsetFilterSet
 from . filters import (
     Filter,
@@ -17,6 +14,7 @@ from . filters import (
     OrderingFilter
 )
 
+__version__ = '0.1.0'
 
 __all__ = [
     'FilterSet', 'LimitOffsetFilterSet', 'Filter', 'MethodFilter', 'CharFilter', 'NumberFilter',

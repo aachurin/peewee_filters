@@ -38,7 +38,7 @@ version = get_version('peewee_filters')
 
 
 setup(
-    name='peewee_filters',
+    name='peewee_generic_filters',
     version=version,
     url='https://github.com/aachurin/peewee_filters',
     license='BSD',
@@ -53,7 +53,7 @@ setup(
         'typesystem'
     ],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
@@ -63,8 +63,6 @@ setup(
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: Implementation :: PyPy',
-        'Programming Language :: Python :: Implementation :: CPython'
+        'Programming Language :: Python :: 3.7'
     ]
 )
