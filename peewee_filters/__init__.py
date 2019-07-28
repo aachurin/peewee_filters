@@ -1,4 +1,4 @@
-from . filterset import FilterSet, LimitOffsetFilterSet
+from . filterset import FilterSet
 from . filters import (
     Filter,
     MethodFilter,
@@ -8,16 +8,16 @@ from . filters import (
     TimeFilter,
     DateFilter,
     BooleanFilter,
+    UUIDFilter,
     SearchingFilter,
     LimitFilter,
     OffsetFilter,
     OrderingFilter
 )
 
-__version__ = '0.1.2'
+__version__ = '0.1.4'
 
 __all__ = [
-    'FilterSet', 'LimitOffsetFilterSet', 'Filter', 'MethodFilter', 'CharFilter', 'NumberFilter',
-    'DateTimeFilter', 'TimeFilter', 'DateFilter', 'BooleanFilter', 'SearchingFilter', 'LimitFilter',
-    'OffsetFilter', 'OrderingFilter'
+    'FilterSet', 'Filter', 'MethodFilter', 'CharFilter', 'NumberFilter', 'DateTimeFilter', 'TimeFilter',
+    'DateFilter', 'BooleanFilter', 'UUIDFilter', 'SearchingFilter', 'LimitFilter', 'OffsetFilter', 'OrderingFilter'
 ]

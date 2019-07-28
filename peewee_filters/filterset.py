@@ -95,8 +95,3 @@ class FilterSet(metaclass=FilterSetMeta):
             if key in params:
                 queryset = filter.apply(self, queryset, params[key], context)
         return queryset
-
-
-class LimitOffsetFilterSet(FilterSet):
-    limit = LimitFilter(description="Result set limit")
-    offset = OffsetFilter(description="Result set offset")

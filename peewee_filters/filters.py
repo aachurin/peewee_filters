@@ -4,6 +4,7 @@ import peewee
 import datetime
 import decimal
 import typing
+import uuid
 from peewee import ForeignKeyField, BackrefAccessor
 from typesystem import (
     Field,
@@ -159,7 +160,8 @@ PRIMITIVES = {
     bool: Boolean,
     datetime.datetime: DateTime,
     datetime.date: Date,
-    datetime.time: Time
+    datetime.time: Time,
+    uuid.UUID: lambda **kwargs: String(format="uuid", **kwargs)
 }
 
 
@@ -315,6 +317,11 @@ class BooleanFilter(ConcreteFilter):
     validator = Boolean
 
 
+class UUIDFilter(ConcreteFilter):
+    def validator(self, **kwargs):
+        return String(format="uuid", **kwargs)
+
+
 PEEWEE_FIELD_MAPPING = {
     peewee.AutoField: NumberFilter,
     peewee.BigAutoField: NumberFilter,
@@ -330,7 +337,8 @@ PEEWEE_FIELD_MAPPING = {
     peewee.DateTimeField: DateTimeFilter,
     peewee.DateField: DateFilter,
     peewee.TimeField: TimeFilter,
-    peewee.BooleanField: BooleanFilter
+    peewee.BooleanField: BooleanFilter,
+    peewee.BinaryUUIDField: UUIDFilter
 }
 
 
@@ -364,7 +372,7 @@ class OffsetFilter(Filter):
 
 
 class LimitFilter(Filter):
-    def __init__(self, default=1000, maximum=None, **kwargs):
+    def __init__(self, default=100, maximum=None, **kwargs):
         super().__init__(**kwargs)
         self.default = default
         self.maximum = maximum

@@ -82,6 +82,9 @@ Matches on a date. Used with `DateField` by default.
 ### BooleanFilter
 This filter matches a boolean, either `True` or `False`, used with `BooleanField`.
 
+### UUIDFilter
+This filter matches an UUID, used with `BinaryUUIDField`.
+
 The following are the arguments that apply to all filters:
 
 ###### field_name
@@ -102,7 +105,7 @@ For `MethodFilter` only.
 An argument that tells the filter how to handle the queryset.
 It can accept either a callable or the name of a method on the `FilterSet`. 
 The callable receives a `query`, the `field_name` of the model field to filter on, the `value` to filter with, and `context`.
-It should return a filtered query.
+It should return a filtered query. The parameter `value` of a callable should have annotation.
 
 # Special filters
 ### SearchingFilter
@@ -122,7 +125,7 @@ It accepts two additional arguments:
 
 ###### default
 Default value for LIMIT clause.
-Defaults to `1000`.
+Defaults to `100`.
 
 ###### maximum
 Maximum value for LIMIT clause.
