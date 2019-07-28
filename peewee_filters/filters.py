@@ -176,6 +176,10 @@ class MethodFilter(Filter):
             t = inspect.signature(method).parameters["value"].annotation
         except KeyError:
             raise TypeError(f"Method `{method.__name__}` is not suitable for filtering.")
+
+        if t in PRIMITIVES:
+            return PRIMITIVES[t](description=self.description)
+
         o = getattr(t, "__origin__", t)
         if issubclass(o, (typing.Sequence, typing.Set)):
             unique_items = issubclass(o, typing.Set)
@@ -203,9 +207,8 @@ class MethodFilter(Filter):
                     return Array(items=items, description=self.description)
             else:
                 return Array(description=self.description)
-        elif t not in PRIMITIVES:
+        else:
             return Any(description=self.description)
-        return PRIMITIVES[t](description=self.description)
 
     def get_concrete_filter(
             self,
