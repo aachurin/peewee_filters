@@ -43,10 +43,10 @@ OPERATORS = {
     "in": "in_",
     "not_in": "not_in",
     "contains": "contains",
-    "^": "startswith",
     "startswith": "startswith",
-    "$": "endswith",
     "endswith": "endswith",
+    "^": "startswith",
+    "$": "endswith",
     "regexp": "regexp",
     "iregexp": "iregexp"
 }
@@ -68,6 +68,7 @@ class Filter:
             self.operator = OPERATORS[operator]
         except KeyError:
             raise TypeError(f"No such operator `{operator}`.")
+        self.escape_value = self.operator in ("contains", "startswith", "endswith")
 
     def get_model_field_and_joins(
             self,
@@ -290,6 +291,8 @@ class ConcreteFilter(Filter):
             field, joins = self.get_model_field_and_joins(query.model, self.field_name)
         if joins:
             query = self.ensure_join(query, joins)
+        if self.escape_value:
+            value = value.replace("\\", "\\\\").replace("_", "\\_").replace("%", "\\%")
         return query.where(getattr(field, self.operator)(value))
 
 
