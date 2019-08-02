@@ -1,7 +1,6 @@
 import typing
 import peewee
-from typesystem import Object
-from . filters import Filter, LimitFilter, OffsetFilter
+from . filters import Filter
 
 
 class FilterSetOptions:
@@ -60,20 +59,13 @@ class FilterSet(metaclass=FilterSetMeta):
     _meta: FilterSetOptions = FilterSetOptions()
     _declared_filters: typing.Dict[str, Filter]
 
-    def __init__(self, params=None, validated_params=None):
-        assert params is not None or validated_params is not None
-        if params is not None:
-            validator = Object(
-                properties=self.__schema__(),
-                additional_properties=None
-            )
-            validated_params = validator.validate(params)
+    def __init__(self, validated_params):
         self.validated_params = validated_params
 
     @classmethod
-    def __schema__(cls):
+    def get_annotation(cls):
         return {
-            name: f.get_schema(cls)
+            name: f.get_annotation(cls)
             for name, f in cls._declared_filters.items()
         }
 
@@ -92,6 +84,7 @@ class FilterSet(metaclass=FilterSetMeta):
             queryset = queryset.select()
         params = self.validated_params
         for key, filter in self._declared_filters.items():
-            if key in params:
-                queryset = filter.apply(self, queryset, params[key], context)
+            value = params.get(key)
+            if value is not None:
+                queryset = filter.apply(self, queryset, value, context)
         return queryset

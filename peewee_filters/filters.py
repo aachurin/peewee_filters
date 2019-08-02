@@ -1,24 +1,10 @@
 import inspect
 import itertools
 import peewee
-import datetime
-import decimal
 import typing
+import datetime
 import uuid
 from peewee import ForeignKeyField, BackrefAccessor
-from typesystem import (
-    Field,
-    String,
-    Integer,
-    Float,
-    Decimal,
-    Any,
-    DateTime,
-    Date,
-    Time,
-    Boolean,
-    Array
-)
 
 Query = peewee.ModelSelect
 
@@ -50,6 +36,12 @@ OPERATORS = {
     "regexp": "regexp",
     "iregexp": "iregexp"
 }
+
+
+class Parameter(typing.NamedTuple):
+    annotation: typing.Type
+    description: str = ""
+    default: typing.Any = None
 
 
 class Filter:
@@ -133,7 +125,7 @@ class Filter:
             query = query.distinct()
         return query
 
-    def get_schema(self, filterset) -> Field:
+    def get_annotation(self, filterset):
         raise TypeError(f"Not a concrete filter.")
 
     def clone(self, cls=None, **kwargs):
@@ -153,63 +145,22 @@ class Filter:
         raise TypeError(f"Can apply only concrete filters.")
 
 
-PRIMITIVES = {
-    str: String,
-    int: Integer,
-    float: Float,
-    decimal.Decimal: Decimal,
-    bool: Boolean,
-    datetime.datetime: DateTime,
-    datetime.date: Date,
-    datetime.time: Time,
-    uuid.UUID: lambda **kwargs: String(format="uuid", **kwargs)
-}
-
-
 class MethodFilter(Filter):
     def __init__(self, method: typing.Union[typing.Callable, str], **kwargs):
         super().__init__(**kwargs)
         self.method = method
 
-    def get_schema(self, filterset) -> Field:
+    def get_annotation(self, filterset):
         method = self.method if callable(self.method) else getattr(filterset, self.method)
         try:
-            t = inspect.signature(method).parameters["value"].annotation
+            parameter = inspect.signature(method).parameters["value"]
         except KeyError:
             raise TypeError(f"Method `{method.__name__}` is not suitable for filtering.")
-
-        if t in PRIMITIVES:
-            return PRIMITIVES[t](description=self.description)
-
-        o = getattr(t, "__origin__", t)
-        if issubclass(o, (typing.Sequence, typing.Set)):
-            unique_items = issubclass(o, typing.Set)
-            if hasattr(t, "__args__") and not t._special:
-                try:
-                    items = PRIMITIVES[t.__args__[0]]
-                except KeyError:
-                    raise TypeError(f"Annotation `{t}` is not supported.")
-                return Array(items=items(), unique_items=unique_items, description=self.description)
-            else:
-                return Array(unique_items=unique_items, description=self.description)
-        elif issubclass(o, typing.Tuple):
-            if hasattr(t, "__args__") and not t._special:
-                if len(t.__args__) == 2 and t.__args__[1] is ...:
-                    try:
-                        items = PRIMITIVES[t.__args__[0]]
-                    except KeyError:
-                        raise TypeError(f"Annotation `{t}` is not supported.")
-                    return Array(items=items(), description=self.description)
-                else:
-                    try:
-                        items = [PRIMITIVES[x]() for x in t.__args__]
-                    except KeyError:
-                        raise TypeError(f"Annotation `{t}` is not supported.")
-                    return Array(items=items, description=self.description)
-            else:
-                return Array(description=self.description)
-        else:
-            return Any(description=self.description)
+        return Parameter(
+            parameter.annotation,
+            default=parameter.default,
+            description=self.description
+        )
 
     def get_concrete_filter(
             self,
@@ -237,7 +188,7 @@ class MethodFilter(Filter):
 
 
 class ConcreteFilter(Filter):
-    validator = None
+    python_type = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -257,12 +208,14 @@ class ConcreteFilter(Filter):
                 f"Operator `{operator}` is not suitable for {self.__class__.__name__}."
             )
 
-    def get_schema(self, filterset) -> Field:
+    def get_annotation(self, filterset):
         if self.operator == "is_null":
-            return Boolean(description=self.description)
+            ann = bool
         elif self.operator in ("in_", "not_in"):
-            return Array(items=self.validator(), description=self.description)
-        return self.validator(description=self.description)
+            ann = typing.List[self.python_type]
+        else:
+            ann = self.python_type
+        return Parameter(ann, description=self.description)
 
     def get_concrete_filter(
             self,
@@ -297,35 +250,34 @@ class ConcreteFilter(Filter):
 
 
 class CharFilter(ConcreteFilter):
-    validator = String
+    python_type = str
 
     def check_operator(self):
         pass
 
 
 class NumberFilter(ConcreteFilter):
-    validator = Float
+    python_type = float
 
 
 class DateTimeFilter(ConcreteFilter):
-    validator = DateTime
+    python_type = datetime.datetime
 
 
 class TimeFilter(ConcreteFilter):
-    validator = Time
+    python_type = datetime.time
 
 
 class DateFilter(ConcreteFilter):
-    validator = Date
+    python_type = datetime.date
 
 
 class BooleanFilter(ConcreteFilter):
-    validator = Boolean
+    python_type = bool
 
 
 class UUIDFilter(ConcreteFilter):
-    def validator(self, **kwargs):
-        return String(format="uuid", **kwargs)
+    python_type = uuid.UUID
 
 
 PEEWEE_FIELD_MAPPING = {
@@ -358,8 +310,8 @@ PEEWEE_FIELD_REVERSE_MAPPING = {
 
 
 class OffsetFilter(Filter):
-    def get_schema(self, filterset) -> Field:
-        return Integer(minimum=0, description=self.description)
+    def get_annotation(self, filterset):
+        return Parameter(int, description=self.description)
 
     def get_concrete_filter(
             self,
@@ -371,10 +323,10 @@ class OffsetFilter(Filter):
             self,
             filterset,
             query: Query,
-            value: typing.Any,
+            value: int,
             context: typing.Any = None
     ) -> Query:
-        return query.offset(value)
+        return query.offset(max(0, value))
 
 
 class LimitFilter(Filter):
@@ -383,11 +335,8 @@ class LimitFilter(Filter):
         self.default = default
         self.maximum = maximum
 
-    def get_schema(self, filterset) -> Field:
-        return Integer(minimum=0,
-                       maximum=self.maximum,
-                       default=self.default,
-                       description=self.description)
+    def get_annotation(self, filterset):
+        return Parameter(int, description=self.description)
 
     def get_concrete_filter(
             self,
@@ -399,10 +348,12 @@ class LimitFilter(Filter):
             self,
             filterset,
             query: Query,
-            value: typing.Any,
+            value: int,
             context: typing.Any = None
     ) -> Query:
-        return query.limit(value)
+        if self.maximum is not None:
+            value = min(value, self.maximum)
+        return query.limit(max(0, value))
 
 
 class OrderingFilter(Filter):
@@ -421,11 +372,8 @@ class OrderingFilter(Filter):
             self.fields = fields
         self.default = default
 
-    def get_schema(self, filterset) -> Field:
-        kwargs = {}
-        if self.default is not None:
-            kwargs["default"] = self.default
-        return Array(items=String(), description=self.description, **kwargs)
+    def get_annotation(self, filterset):
+        return Parameter(typing.List[str], description=self.description, default=self.default)
 
     def get_concrete_filter(
             self,
@@ -440,7 +388,7 @@ class OrderingFilter(Filter):
             self,
             filterset,
             query: Query,
-            value: typing.Any,
+            value: typing.List[str],
             context: typing.Any = None
     ) -> Query:
         order_by = []
@@ -486,8 +434,8 @@ class SearchingFilter(Filter):
                 key = str(e)
                 raise TypeError(f"No such operator `{key}`.")
 
-    def get_schema(self, filterset) -> Field:
-        return String(description=self.description)
+    def get_annotation(self, filterset):
+        return Parameter(str, description=self.description)
 
     def get_concrete_filter(
             self,
@@ -510,7 +458,7 @@ class SearchingFilter(Filter):
             self,
             filterset,
             query: Query,
-            value: typing.Any,
+            value: str,
             context: typing.Any = None
     ) -> Query:
         where = None

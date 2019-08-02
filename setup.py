@@ -50,7 +50,6 @@ setup(
     packages=get_packages('peewee_filters'),
     install_requires=[
         'peewee',
-        'typesystem'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
