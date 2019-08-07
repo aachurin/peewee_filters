@@ -52,10 +52,12 @@ class Filter:
             self,
             field_name: str = None,
             description: str = "",
-            operator: str = "eq"
+            operator: str = "eq",
+            default: typing.Any = None
     ):
         self.description = description
         self.field_name = field_name
+        self.default = default
         try:
             self.operator = OPERATORS[operator]
         except KeyError:
@@ -128,7 +130,7 @@ class Filter:
     def get_annotation(self, filterset):
         raise TypeError(f"Not a concrete filter.")
 
-    def clone(self, cls=None, **kwargs):
+    def clone(self, cls=None, **kwargs) -> "Filter":
         cls = cls or self.__class__
         obj = cls.__new__(cls)
         obj.__dict__ = self.__dict__.copy()
@@ -156,9 +158,10 @@ class MethodFilter(Filter):
             parameter = inspect.signature(method).parameters["value"]
         except KeyError:
             raise TypeError(f"Method `{method.__name__}` is not suitable for filtering.")
+        default = None if parameter.default is inspect.Signature.empty else parameter.default
         return Parameter(
             parameter.annotation,
-            default=parameter.default,
+            default=default,
             description=self.description
         )
 
@@ -215,7 +218,7 @@ class ConcreteFilter(Filter):
             ann = typing.List[self.python_type]
         else:
             ann = self.python_type
-        return Parameter(ann, description=self.description)
+        return Parameter(ann, description=self.description, default=self.default)
 
     def get_concrete_filter(
             self,
@@ -311,7 +314,7 @@ PEEWEE_FIELD_REVERSE_MAPPING = {
 
 class OffsetFilter(Filter):
     def get_annotation(self, filterset):
-        return Parameter(int, description=self.description)
+        return Parameter(int, description=self.description, default=self.default)
 
     def get_concrete_filter(
             self,
@@ -336,7 +339,7 @@ class LimitFilter(Filter):
         self.maximum = maximum
 
     def get_annotation(self, filterset):
-        return Parameter(int, description=self.description)
+        return Parameter(int, description=self.description, default=self.default)
 
     def get_concrete_filter(
             self,
@@ -435,7 +438,7 @@ class SearchingFilter(Filter):
                 raise TypeError(f"No such operator `{key}`.")
 
     def get_annotation(self, filterset):
-        return Parameter(str, description=self.description)
+        return Parameter(str, description=self.description, default=self.default)
 
     def get_concrete_filter(
             self,
