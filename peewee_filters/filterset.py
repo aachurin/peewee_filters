@@ -80,7 +80,7 @@ class FilterSet(metaclass=FilterSetMeta):
 
     def apply(self, queryset=None, context=None):
         queryset = self.get_queryset(queryset)
-        if not isinstance(queryset, peewee.ModelSelect):
+        if not isinstance(queryset, peewee.Select):
             queryset = queryset.select()
         params = self.validated_params
         for key, filter in self._declared_filters.items():
