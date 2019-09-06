@@ -15,7 +15,7 @@ from . filters import (
     OrderingFilter
 )
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 __all__ = [
     'FilterSet', 'Filter', 'MethodFilter', 'CharFilter', 'NumberFilter', 'DateTimeFilter', 'TimeFilter',
